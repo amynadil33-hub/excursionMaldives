@@ -20,6 +20,13 @@ function friendlyError(mode: 'login' | 'signup', err: { message: string; code?: 
   return 'Something went wrong. Please try again.'
 }
 
+function unexpectedError(error: unknown) {
+  if (error instanceof TypeError && /fetch|network/i.test(error.message)) {
+    return 'Could not reach the account service. Check your connection and try again.'
+  }
+  return 'Something went wrong. Please try again.'
+}
+
 export function AuthForm({ mode, next, configured }: { mode: 'login' | 'signup'; next?: string; configured: boolean }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -28,39 +35,48 @@ export function AuthForm({ mode, next, configured }: { mode: 'login' | 'signup';
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!configured) return
+    setError(null)
+    if (!configured) {
+      setError('Account creation is not configured on this deployment. Please contact the site administrator.')
+      return
+    }
     const fd = new FormData(e.currentTarget)
     const email = String(fd.get('email')).trim()
     const password = String(fd.get('password'))
-    setError(null)
-    setPending(true)
-    const supabase = createClient()
 
-    if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      setPending(false)
-      if (error) return setError(friendlyError('login', error))
-      router.push(target)
-      router.refresh()
-      return
-    }
-
-    if (password.length < 8) {
-      setPending(false)
+    if (mode === 'signup' && password.length < 8) {
       return setError('Please choose a password of at least 8 characters.')
     }
-    const base = process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${base}?next=${encodeURIComponent(target)}`,
-        data: { full_name: String(fd.get('full_name') ?? '').trim().slice(0, 120) },
-      },
-    })
-    setPending(false)
-    if (error) return setError(friendlyError('signup', error))
-    router.push('/auth/sign-up-success')
+
+    setPending(true)
+    try {
+      const supabase = createClient()
+
+      if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) return setError(friendlyError('login', error))
+        router.push(target)
+        router.refresh()
+        return
+      }
+
+      const callbackUrl = new URL('/auth/callback', window.location.origin)
+      callbackUrl.searchParams.set('next', target)
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: callbackUrl.toString(),
+          data: { full_name: String(fd.get('full_name') ?? '').trim().slice(0, 120) },
+        },
+      })
+      if (error) return setError(friendlyError('signup', error))
+      router.push('/auth/sign-up-success')
+    } catch (error) {
+      setError(unexpectedError(error))
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
@@ -87,7 +103,7 @@ export function AuthForm({ mode, next, configured }: { mode: 'login' | 'signup';
           {error}
         </p>
       )}
-      <Button type="submit" size="lg" disabled={pending || !configured} className="h-12 rounded-full">
+      <Button type="submit" size="lg" disabled={pending} className="h-12 rounded-full">
         {pending ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
       </Button>
       <p className="text-center text-sm text-muted-foreground">

@@ -30,7 +30,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           <h1 className="text-3xl font-extrabold">{profile?.full_name || user.email}</h1>
         </div>
         <form action={signOut}>
-          <Button variant="outline" className="rounded-full">
+          <Button type="submit" variant="outline" className="rounded-full">
             Sign out
           </Button>
         </form>

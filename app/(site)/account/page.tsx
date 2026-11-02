@@ -8,7 +8,6 @@ import type { Order } from '@/lib/types'
 import { StatusBadge } from '@/components/site/status-badge'
 import { EmptyState } from '@/components/site/empty-state'
 import { ProfileForm } from '@/components/account/profile-form'
-import { signOut } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = { title: 'My account' }
@@ -29,7 +28,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           <p className="text-sm text-muted-foreground">Welcome back</p>
           <h1 className="text-3xl font-extrabold">{profile?.full_name || user.email}</h1>
         </div>
-        <form action={signOut}>
+        <form action="/auth/sign-out" method="post">
           <Button type="submit" variant="outline" className="rounded-full">
             Sign out
           </Button>

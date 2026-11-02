@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { Logo } from '@/components/site/logo'
-import { signOut } from '@/app/actions/auth'
 import { PortalNav, type PortalNavItem } from './portal-nav'
 
 export function PortalShell({
@@ -29,7 +28,7 @@ export function PortalShell({
             <Link href="/" className="text-muted-foreground hover:text-foreground">
               View site
             </Link>
-            <form action={signOut}>
+            <form action="/auth/sign-out" method="post">
               <button type="submit" className="text-muted-foreground hover:text-foreground">
                 Sign out
               </button>

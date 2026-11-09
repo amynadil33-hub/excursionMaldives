@@ -72,6 +72,7 @@ export const demoVendors: Vendor[] = [
   status: 'approved',
   commission_rate: commission as number,
   payout_details: {},
+  details: {},
   created_at: CREATED,
 }))
 

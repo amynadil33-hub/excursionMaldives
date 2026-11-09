@@ -13,6 +13,7 @@ export function SubmitButton({
   value,
   variant,
   className,
+  formNoValidate,
 }: {
   children: React.ReactNode
   pendingLabel?: string
@@ -20,10 +21,11 @@ export function SubmitButton({
   value?: string
   variant?: 'default' | 'outline' | 'secondary' | 'destructive' | 'ghost'
   className?: string
+  formNoValidate?: boolean
 }) {
   const { pending } = useFormStatus()
   return (
-    <Button type="submit" name={name} value={value} variant={variant} disabled={pending} className={cn('h-11 rounded-full px-6', className)}>
+    <Button type="submit" name={name} value={value} variant={variant} formNoValidate={formNoValidate} disabled={pending} className={cn('h-11 rounded-full px-6', className)}>
       {pending ? pendingLabel : children}
     </Button>
   )

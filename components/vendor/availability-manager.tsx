@@ -1,12 +1,12 @@
 'use client'
 
-import { useActionState, useTransition } from 'react'
+import { useActionState, useState, useTransition } from 'react'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { addSlots, deleteSlot, updateSlot } from '@/app/actions/vendor'
-import { Field, FormMessage, SubmitButton } from '@/components/portal/form-bits'
+import { Field, FormMessage, SubmitButton, selectClass } from '@/components/portal/form-bits'
 import { formatDate, formatPrice, formatTime } from '@/lib/format'
 import type { AvailabilitySlot } from '@/lib/types'
 
@@ -23,6 +23,7 @@ export function AvailabilityManager({
 }) {
   const [state, action] = useActionState(addSlots.bind(null, listingId), {})
   const [pending, startTransition] = useTransition()
+  const [repeat, setRepeat] = useState('daily')
   const today = new Date().toISOString().slice(0, 10)
 
   function run(fn: () => Promise<{ error?: string }>) {
@@ -35,12 +36,20 @@ export function AvailabilityManager({
   return (
     <div className="flex flex-col gap-6">
       <form action={action} className="flex flex-col gap-4 rounded-2xl bg-secondary/60 p-4">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Field label="From" htmlFor="from">
             <Input id="from" name="from" type="date" min={today} defaultValue={today} required className="h-11 bg-background" />
           </Field>
-          <Field label="To" htmlFor="to">
-            <Input id="to" name="to" type="date" min={today} required className="h-11 bg-background" />
+          <Field label="Repeat" htmlFor="repeat">
+            <select id="repeat" name="repeat" value={repeat} onChange={(e) => setRepeat(e.target.value)} className={selectClass}>
+              <option value="once">Doesn’t repeat</option>
+              <option value="daily">Every day</option>
+              <option value="weekly">Every week</option>
+              <option value="custom">Custom weekdays</option>
+            </select>
+          </Field>
+          <Field label={repeat === 'once' ? 'Ends' : 'Repeat until'} htmlFor="to" hint={repeat === 'once' ? 'This creates one departure date.' : 'Up to 180 days at a time.'}>
+            <Input id="to" name="to" type="date" min={today} required={repeat !== 'once'} disabled={repeat === 'once'} className="h-11 bg-background" />
           </Field>
           <Field label="Start times" htmlFor="times" hint="24h, comma separated">
             <Input id="times" name="times" defaultValue="08:30" required className="h-11 bg-background" />
@@ -49,7 +58,7 @@ export function AvailabilityManager({
             <Input id="capacity" name="capacity" type="number" min={1} max={500} defaultValue={defaultCapacity} required className="h-11 bg-background" />
           </Field>
         </div>
-        <fieldset className="flex flex-col gap-2">
+        {repeat === 'custom' && <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-sm font-medium">Runs on</legend>
           <div className="flex flex-wrap gap-2">
             {WEEKDAYS.map((d, i) => (
@@ -59,7 +68,7 @@ export function AvailabilityManager({
               </label>
             ))}
           </div>
-        </fieldset>
+        </fieldset>}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <Field label="Price override (optional)" htmlFor="price_override" className="sm:w-56">
             <Input id="price_override" name="price_override" type="number" min={0} step="0.01" className="h-11 bg-background" />

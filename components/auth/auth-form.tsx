@@ -31,7 +31,34 @@ export function AuthForm({ mode, next, configured }: { mode: 'login' | 'signup';
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [googlePending, setGooglePending] = useState(false)
   const target = safeNext(next)
+
+  async function signInWithGoogle() {
+    setError(null)
+    if (!configured) {
+      setError('Account sign-in is not configured on this deployment. Please contact the site administrator.')
+      return
+    }
+
+    setGooglePending(true)
+    try {
+      const callbackUrl = new URL('/auth/callback', window.location.origin)
+      callbackUrl.searchParams.set('next', target)
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: callbackUrl.toString() },
+      })
+      if (error) {
+        setError('Google sign-in could not be started. Please try again.')
+        setGooglePending(false)
+      }
+    } catch (error) {
+      setError(unexpectedError(error))
+      setGooglePending(false)
+    }
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -84,6 +111,27 @@ export function AuthForm({ mode, next, configured }: { mode: 'login' | 'signup';
       {!configured && (
         <p className="rounded-2xl bg-secondary p-4 text-sm leading-relaxed">Accounts will be available once the marketplace database is connected.</p>
       )}
+      <Button
+        type="button"
+        size="lg"
+        variant="outline"
+        disabled={pending || googlePending || !configured}
+        onClick={signInWithGoogle}
+        className="h-12 rounded-full"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.92h5.38a4.6 4.6 0 0 1-2 3.02v2.54h3.24c1.9-1.75 2.98-4.33 2.98-7.41Z" />
+          <path fill="#34A853" d="M12 22c2.7 0 4.98-.9 6.63-2.43l-3.24-2.54c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.04v2.62A10 10 0 0 0 12 22Z" />
+          <path fill="#FBBC05" d="M6.39 13.87A6.02 6.02 0 0 1 6.07 12c0-.65.11-1.28.32-1.87V7.51H3.04A10 10 0 0 0 2 12c0 1.61.38 3.14 1.04 4.49l3.35-2.62Z" />
+          <path fill="#EA4335" d="M12 6.01c1.47 0 2.79.51 3.83 1.5L18.7 4.64A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.96 5.51l3.35 2.62C7.18 7.77 9.39 6.01 12 6.01Z" />
+        </svg>
+        {googlePending ? 'Connecting to Google…' : 'Continue with Google'}
+      </Button>
+      <div className="flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground" aria-hidden="true">
+        <span className="h-px flex-1 bg-border" />
+        <span>or use email</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
       {mode === 'signup' && (
         <div className="flex flex-col gap-2">
           <Label htmlFor="full_name">Full name</Label>
@@ -103,7 +151,7 @@ export function AuthForm({ mode, next, configured }: { mode: 'login' | 'signup';
           {error}
         </p>
       )}
-      <Button type="submit" size="lg" disabled={pending} className="h-12 rounded-full">
+      <Button type="submit" size="lg" disabled={pending || googlePending} className="h-12 rounded-full">
         {pending ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
       </Button>
       <p className="text-center text-sm text-muted-foreground">

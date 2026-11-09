@@ -33,6 +33,16 @@ export function parseListing(fd: FormData): { error: string } | { data: Record<s
   const title = text(fd, 'title', 140)
   if (!title || title.length < 4) return { error: 'Please give the experience a title (at least 4 characters).' }
 
+  const publishing = fd.get('intent') !== 'draft'
+  const summary = text(fd, 'summary', 300)
+  const description = text(fd, 'description', 8000)
+  const highlights = linesToArray(fd.get('highlights')).slice(0, 15)
+  const inclusions = linesToArray(fd.get('inclusions')).slice(0, 20)
+  if (publishing && !summary) return { error: 'Add a short package summary before submitting.' }
+  if (publishing && (!description || description.length < 80)) return { error: 'Add a full package description of at least 80 characters.' }
+  if (publishing && highlights.length === 0) return { error: 'Add at least one package highlight.' }
+  if (publishing && inclusions.length === 0) return { error: 'Add at least one included item.' }
+
   const price = num(fd, 'price')
   const childPrice = num(fd, 'child_price')
   const compareAt = num(fd, 'compare_at_price')
@@ -51,8 +61,8 @@ export function parseListing(fd: FormData): { error: string } | { data: Record<s
   return {
     data: {
       title,
-      summary: text(fd, 'summary', 300),
-      description: text(fd, 'description', 8000),
+      summary,
+      description,
       category_id: uuidOrNull(fd, 'category_id'),
       destination_id: uuidOrNull(fd, 'destination_id'),
       duration_minutes: duration,
@@ -63,8 +73,8 @@ export function parseListing(fd: FormData): { error: string } | { data: Record<s
       max_guests: maxGuests,
       is_private: fd.get('is_private') === 'on',
       cover_image: text(fd, 'cover_image', 1000),
-      highlights: linesToArray(fd.get('highlights')).slice(0, 15),
-      inclusions: linesToArray(fd.get('inclusions')).slice(0, 20),
+      highlights,
+      inclusions,
       exclusions: linesToArray(fd.get('exclusions')).slice(0, 20),
       pickup_locations: linesToArray(fd.get('pickup_locations')).slice(0, 20),
       languages: String(fd.get('languages') ?? '')

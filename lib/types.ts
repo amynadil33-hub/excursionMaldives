@@ -10,6 +10,22 @@ export interface Profile {
   created_at: string
 }
 
+export interface VendorDetails {
+  vessel_name?: string
+  vessel_model?: string
+  vessel_length_ft?: number | null
+  vessel_year?: number | null
+  vessel_restored?: boolean
+  engine_manufacturer?: string
+  engine_count?: number | null
+  activities?: string[]
+  departure_points?: string[]
+  licenses?: string
+  safety_equipment?: string
+  promo_video_url?: string
+  terms_accepted?: boolean
+}
+
 export interface Vendor {
   id: string
   owner_id: string | null
@@ -26,6 +42,7 @@ export interface Vendor {
   status: 'pending' | 'approved' | 'suspended' | 'rejected'
   commission_rate: number
   payout_details: Record<string, string>
+  details: VendorDetails
   created_at: string
 }
 

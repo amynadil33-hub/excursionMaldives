@@ -22,6 +22,7 @@ export default async function AdminVendorDetail({ params }: { params: Promise<{ 
   ])
   const balance = (ledger ?? []).reduce((s, l) => s + Number(l.amount), 0)
   const payout = vendor.payout_details ?? {}
+  const details = vendor.details ?? {}
 
   return (
     <>
@@ -73,6 +74,26 @@ export default async function AdminVendorDetail({ params }: { params: Promise<{ 
           </Panel>
         </div>
       </div>
+      <Panel title="Vessel, activities & safety">
+        <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[auto_1fr_auto_1fr]">
+          <dt className="text-muted-foreground">Vessel</dt>
+          <dd>{[details.vessel_name, details.vessel_model].filter(Boolean).join(' · ') || '—'}</dd>
+          <dt className="text-muted-foreground">Length / year</dt>
+          <dd>{[details.vessel_length_ft && `${details.vessel_length_ft} ft`, details.vessel_year].filter(Boolean).join(' · ') || '—'}</dd>
+          <dt className="text-muted-foreground">Engine</dt>
+          <dd>{[details.engine_manufacturer, details.engine_count != null && `${details.engine_count} engine${details.engine_count === 1 ? '' : 's'}`].filter(Boolean).join(' · ') || '—'}</dd>
+          <dt className="text-muted-foreground">Restored</dt>
+          <dd>{details.vessel_restored ? 'Yes' : 'No'}</dd>
+          <dt className="text-muted-foreground">Activities</dt>
+          <dd>{details.activities?.join(', ') || '—'}</dd>
+          <dt className="text-muted-foreground">Departure points</dt>
+          <dd>{details.departure_points?.join(', ') || '—'}</dd>
+          <dt className="text-muted-foreground">Licences</dt>
+          <dd className="whitespace-pre-line">{details.licenses || '—'}</dd>
+          <dt className="text-muted-foreground">Safety equipment</dt>
+          <dd className="whitespace-pre-line">{details.safety_equipment || '—'}</dd>
+        </dl>
+      </Panel>
       <Panel title="Listings">
         {listings?.length ? (
           <ul className="flex flex-col divide-y divide-border">

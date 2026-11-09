@@ -34,12 +34,6 @@ export function ListingForm({
         <Field label="Title" htmlFor="title">
           <Input id="title" name="title" required minLength={4} maxLength={140} defaultValue={listing?.title} className="h-11" />
         </Field>
-        <Field label="Short summary" htmlFor="summary" hint="One or two sentences shown on listing cards.">
-          <Textarea id="summary" name="summary" rows={2} maxLength={300} defaultValue={listing?.summary ?? ''} />
-        </Field>
-        <Field label="Full description" htmlFor="description">
-          <Textarea id="description" name="description" rows={7} defaultValue={listing?.description ?? ''} />
-        </Field>
         <div className="grid gap-5 md:grid-cols-2">
           <Field label="Category" htmlFor="category_id">
             <select id="category_id" name="category_id" defaultValue={listing?.category_id ?? ''} className={selectClass}>
@@ -64,6 +58,27 @@ export function ListingForm({
         </div>
         <div className="max-w-xl">
           <ImageUploadField name="cover_image" label="Cover photo" bucket="experiences" folder={uploadFolder} defaultValue={listing?.cover_image} />
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-5 rounded-2xl border border-border p-5">
+        <div>
+          <h2 className="text-lg font-bold">Package content</h2>
+          <p className="mt-1 text-sm text-muted-foreground">These details appear prominently on the public package page and are required before submission.</p>
+        </div>
+        <Field label="Short summary" htmlFor="summary" hint="One or two sentences shown on listing cards.">
+          <Textarea id="summary" name="summary" rows={2} maxLength={300} required defaultValue={listing?.summary ?? ''} placeholder="A quick overview of what makes this excursion special." />
+        </Field>
+        <Field label="Full package description" htmlFor="description" hint="Describe the experience, route, atmosphere and what guests can expect.">
+          <Textarea id="description" name="description" rows={8} required minLength={80} defaultValue={listing?.description ?? ''} placeholder="Give guests a complete description of the trip…" />
+        </Field>
+        <div className="grid gap-5 md:grid-cols-2">
+          <Field label="Highlights" htmlFor="highlights" hint="One highlight per line. Add at least one.">
+            <Textarea id="highlights" name="highlights" rows={6} required defaultValue={listing?.highlights?.join('\n')} placeholder={'Snorkel at a colourful house reef\nVisit a local island\nWatch the sunset from the boat'} />
+          </Field>
+          <Field label="What’s included" htmlFor="inclusions" hint="One included item per line. Add at least one.">
+            <Textarea id="inclusions" name="inclusions" rows={6} required defaultValue={listing?.inclusions?.join('\n')} placeholder={'Boat transfer\nSnorkelling equipment\nWater and refreshments\nLocal guide'} />
+          </Field>
         </div>
       </section>
 
@@ -98,14 +113,8 @@ export function ListingForm({
       <section className="flex flex-col gap-5">
         <h2 className="text-lg font-bold">Trip details</h2>
         <div className="grid gap-5 md:grid-cols-2">
-          <Field label="Highlights" htmlFor="highlights" hint="One per line.">
-            <Textarea id="highlights" name="highlights" rows={5} defaultValue={listing?.highlights?.join('\n')} />
-          </Field>
           <Field label="Pickup locations" htmlFor="pickup_locations" hint="One per line. Guests choose one at checkout.">
             <Textarea id="pickup_locations" name="pickup_locations" rows={5} defaultValue={listing?.pickup_locations?.join('\n')} />
-          </Field>
-          <Field label="What's included" htmlFor="inclusions" hint="One per line.">
-            <Textarea id="inclusions" name="inclusions" rows={5} defaultValue={listing?.inclusions?.join('\n')} />
           </Field>
           <Field label="Not included" htmlFor="exclusions" hint="One per line.">
             <Textarea id="exclusions" name="exclusions" rows={5} defaultValue={listing?.exclusions?.join('\n')} />
@@ -137,7 +146,7 @@ export function ListingForm({
         <SubmitButton name="intent" value="publish" pendingLabel="Saving…">
           {isAdmin ? 'Save & publish' : live ? 'Save changes' : 'Submit for review'}
         </SubmitButton>
-        <SubmitButton name="intent" value="draft" variant="outline" pendingLabel="Saving…">
+        <SubmitButton name="intent" value="draft" variant="outline" pendingLabel="Saving…" formNoValidate>
           {live ? 'Unpublish to draft' : 'Save as draft'}
         </SubmitButton>
       </div>

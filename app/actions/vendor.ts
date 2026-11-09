@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getMyVendor, getSession } from '@/lib/auth'
-import { slugify } from '@/lib/format'
+import { linesToArray, slugify } from '@/lib/format'
 import { parseListing, text, num } from '@/lib/listing-form'
 import type { FormState } from './public'
 
@@ -38,6 +38,20 @@ export async function saveVendorProfile(_: FormState, fd: FormData): Promise<For
   const email = text(fd, 'email', 200)
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Enter a valid business email.' }
 
+  const existing = await getMyVendor()
+  const vesselLength = num(fd, 'vessel_length_ft')
+  const vesselYear = num(fd, 'vessel_year')
+  const engineCount = num(fd, 'engine_count')
+  const currentYear = new Date().getFullYear()
+  if (vesselLength !== null && (Number.isNaN(vesselLength) || vesselLength <= 0 || vesselLength > 500))
+    return { error: 'Enter a valid vessel length in feet.' }
+  if (vesselYear !== null && (!Number.isInteger(vesselYear) || vesselYear < 1900 || vesselYear > currentYear + 1))
+    return { error: 'Enter a valid vessel year.' }
+  if (engineCount !== null && (!Number.isInteger(engineCount) || engineCount < 0 || engineCount > 20))
+    return { error: 'Enter a valid number of engines.' }
+  const termsAccepted = existing?.details?.terms_accepted === true || fd.get('terms_accepted') === 'on'
+  if (!termsAccepted) return { error: 'Please accept the vendor terms before submitting your application.' }
+
   const payload = {
     business_name,
     tagline: text(fd, 'tagline', 160),
@@ -53,10 +67,24 @@ export async function saveVendorProfile(_: FormState, fd: FormData): Promise<For
       account_name: text(fd, 'account_name', 120) ?? '',
       account_number: text(fd, 'account_number', 40) ?? '',
     },
+    details: {
+      vessel_name: text(fd, 'vessel_name', 120) ?? '',
+      vessel_model: text(fd, 'vessel_model', 120) ?? '',
+      vessel_length_ft: vesselLength,
+      vessel_year: vesselYear,
+      vessel_restored: fd.get('vessel_restored') === 'on',
+      engine_manufacturer: text(fd, 'engine_manufacturer', 120) ?? '',
+      engine_count: engineCount,
+      activities: linesToArray(fd.get('activities')).slice(0, 30),
+      departure_points: linesToArray(fd.get('departure_points')).slice(0, 20),
+      licenses: text(fd, 'licenses', 2000) ?? '',
+      safety_equipment: text(fd, 'safety_equipment', 2000) ?? '',
+      promo_video_url: text(fd, 'promo_video_url', 1000) ?? '',
+      terms_accepted: termsAccepted,
+    },
   }
 
   const supabase = await createClient()
-  const existing = await getMyVendor()
   if (existing) {
     const { error } = await supabase.from('vendors').update(payload).eq('id', existing.id)
     if (error) return { error: 'Could not save your profile. Please try again.' }
@@ -143,7 +171,8 @@ export async function addSlots(listingId: string, _: FormState, fd: FormData): P
   if (!vendor) return { error: 'Your vendor account is not approved yet.' }
 
   const from = String(fd.get('from') ?? '')
-  const to = String(fd.get('to') ?? from)
+  const repeat = String(fd.get('repeat') ?? 'custom')
+  const to = repeat === 'once' ? from : String(fd.get('to') ?? from)
   const datePattern = /^\d{4}-\d{2}-\d{2}$/
   if (!datePattern.test(from) || !datePattern.test(to)) return { error: 'Choose a start and end date.' }
   const start = new Date(`${from}T00:00:00Z`)
@@ -153,7 +182,16 @@ export async function addSlots(listingId: string, _: FormState, fd: FormData): P
   if (end < start) return { error: 'End date must be after the start date.' }
   if ((end.getTime() - start.getTime()) / 86400000 > MAX_RANGE_DAYS) return { error: `Add up to ${MAX_RANGE_DAYS} days at a time.` }
 
-  const weekdays = new Set(fd.getAll('weekdays').map(Number))
+  const weekdays = new Set<number>()
+  if (repeat === 'daily') {
+    ;[0, 1, 2, 3, 4, 5, 6].forEach((day) => weekdays.add(day))
+  } else if (repeat === 'once' || repeat === 'weekly') {
+    weekdays.add(start.getUTCDay())
+  } else if (repeat === 'custom') {
+    fd.getAll('weekdays').map(Number).forEach((day) => weekdays.add(day))
+  } else {
+    return { error: 'Choose a valid repeat option.' }
+  }
   if (weekdays.size === 0) return { error: 'Pick at least one weekday.' }
 
   const times = String(fd.get('times') ?? '')
